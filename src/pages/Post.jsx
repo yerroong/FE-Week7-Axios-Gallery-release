@@ -1,12 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import axios from "axios";
 import styled from 'styled-components';
 
 const Photo = styled.img`
-  width: 810px;
-  height: 810px;
+  width: 580px;
+  height: 580px;
 `;
 
 const Postname = styled.div`
@@ -27,37 +26,34 @@ const Posttext = styled.div`
 
 const Container = styled.div`
   padding: 3px;
-  //border: 2px solid black;
   display: flex;
   flex-direction: column;
   align-items: center;
 `;
 
 const Wrapper = styled.div`
-  //border: 2px solid red;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   width: 100%;
+  margin-bottom: 10px;
 `;
 
 const TextWrapper = styled.div`
-  //border: 2px solid black;
   display: block;
 `;
 
 const TextWrapper2 = styled.div`
- // border: 2px solid black;
   font-size: 13px;
   display: flex;
   align-items: center;
 `;
 
-const PostCommentWrapper = styled.div`
+const CommentWrapper = styled.div`
   padding: 8px 0;
   display: flex;
   justify-content: space-between;
   width: 100%;
-  //border: 2px solid black;
 `;
 
 const CommentInput = styled.input`
@@ -98,7 +94,6 @@ const CommentList = styled.div`
   margin-top: 10px;
   width: 100%;
   padding-top: 10px;
-  //border: 2px solid black;
 `;
 
 const CommentItem = styled.div`
@@ -120,8 +115,8 @@ const Name = styled.div`
 const Post = () => {
   const { postId } = useParams();
   const [Feed, setFeed] = useState([]);
-  const [Comments, setComments] = useState("");
-  const [commentNum, setCommentNum] = useState(0);
+  const [Comment, setComment] = useState("");
+  const [commentN, setCommentN] = useState(0);
   const [commentList, setCommentList] = useState([]);
   const navigate = useNavigate(); 
 
@@ -133,22 +128,22 @@ const Post = () => {
         if (image) {
           setFeed(image);
         } else {
-          navigate("*");  // 이미지가 없는경우
+          navigate("*");
         }
       })
       .catch((e) => {
         console.log(e);
-        navigate("*");  // 오류가 발생하는경우
+        navigate("*");
       });
   }, [postId, navigate]);
 
-  const fetchComments = () => {
+  const retrieveComments = () => {
     axios
       .get(`http://3.36.127.43:8080/${postId}/comments`)
       .then((res) => {
-        const sortedComments = res.data.reverse(); // 최신순으로 정렬
+        const sortedComments = res.data.reverse();
         setCommentList(sortedComments);
-        setCommentNum(sortedComments.length);
+        setCommentN(sortedComments.length);
       })
       .catch((e) => {
         console.log(e);
@@ -156,37 +151,37 @@ const Post = () => {
   };
 
   useEffect(() => {
-    fetchComments();
+    retrieveComments();
   }, [postId]);
 
-  const handleComments = event => {
-    setComments(event.target.value);
+  const handleChange = event => {
+    setComment(event.target.value);
   };
 
-  const postComment = () => {
-    if (Comments === "") {
+  const publishComment = () => {
+    if (Comment === "") {
       return;
     }
     axios
       .post(`http://3.36.127.43:8080/${postId}/comments`, {
-        commentBody: Comments
+        commentBody: Comment
       })
       .then(response => {
         console.log('Comment Created:', response.data);
-        setComments("");
-        fetchComments(); // 댓글 작성 후 다시 댓글 목록 가져오기
+        setComment("");
+        retrieveComments();
       })
       .catch(error => {
         console.error('Failed to post comment:', error);
       });
   };
 
-  const deleteComment = (commentId) => {
+  const eraseComment = (commentId) => {
     axios
       .delete(`http://3.36.127.43:8080/${postId}/comments/${commentId}`, {})
       .then(response => {
         console.log('Comment deleted successfully:', response.data);
-        fetchComments();
+        retrieveComments();
       })
       .catch(error => {
         console.log('Failed to delete comment:', error);
@@ -201,19 +196,19 @@ const Post = () => {
           <Posttext>{Feed.imageText}</Posttext>
         </TextWrapper>
         <TextWrapper2>
-          댓글 {commentNum}개
+          댓글 {commentN}개
         </TextWrapper2>
       </Wrapper>
       <Photo src={Feed.imageURL} />
-      <PostCommentWrapper>
+      <CommentWrapper>
         <CommentInput
           type="text"
           placeholder="댓글작성.."
-          value={Comments}
-          onChange={handleComments}
+          value={Comment}
+          onChange={handleChange}
         />
-        <PostButton onClick={postComment}>게시</PostButton>
-      </PostCommentWrapper>
+        <PostButton onClick={publishComment}>게시</PostButton>
+      </CommentWrapper>
       <CommentList>
         {commentList.map((comment) => (
           <CommentItem key={comment.id}>
@@ -221,7 +216,7 @@ const Post = () => {
               <Name>익명 </Name>
               {comment.commentBody}
             </CommentText>
-            <DeleteButton onClick={() => deleteComment(comment.id)}>삭제</DeleteButton>
+            <DeleteButton onClick={() => eraseComment(comment.id)}>삭제</DeleteButton>
           </CommentItem>
         ))}
       </CommentList>
